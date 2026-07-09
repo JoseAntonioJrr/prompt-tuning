@@ -1,0 +1,11 @@
+# Ambiente virtual
+.venv/
+__pycache__/
+*.pyc
+
+# Arquivos de checkpoints e saídas pesadas do Hugging Face
+outputs/
+results/prompt_tuning_checkpoint/
+results/prompt_tuning_random/
+results/full_ft/
+
