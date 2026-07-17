@@ -5,7 +5,7 @@ import json
 import os
 import time
 from transformers import AutoTokenizer, AutoModelForCausalLM, TrainingArguments, Trainer, TrainerCallback
-from peft import PromptTuningConfig, PromptTuningInit, get_peft_model, TaskType
+from peft import PromptTuningConfig, PromptTuningInit, LoraConfig, get_peft_model, TaskType
 from utils import setup_environment, get_imdb_dataset
 
 class HardwareMonitorCallback(TrainerCallback):
@@ -45,9 +45,9 @@ class HardwareMonitorCallback(TrainerCallback):
         print(f"💾 Métricas reais salvas em {log_file}")
 
 def parse_args():
-    parser = argparse.ArgumentParser(description="Treinamento de SLM com Prompt Tuning ou Full Fine-Tuning")
-    parser.add_argument("--method", type=str, required=True, choices=["prompt_tuning", "full_ft"])
-    parser.add_argument("--samples", type=int, default=5000, help="Quantidade de amostras")
+    parser = argparse.ArgumentParser(description="Treinamento de SLM com Prompt Tuning, LoRA ou Full Fine-Tuning")
+    parser.add_argument("--method", type=str, required=True, choices=["prompt_tuning", "lora", "full_ft"])
+    parser.add_argument("--samples", type=int, default=25000, help="Quantidade de amostras")
     parser.add_argument("--epochs", type=int, default=5, help="Quantidade de épocas")
     parser.add_argument("--init", type=str, default="text", choices=["text", "random"], help="Inicialização do Prompt Tuning")
     return parser.parse_args()
@@ -67,13 +67,14 @@ def main():
         device_map="auto"
     )
 
+    # 1. Apenas define as configurações
     if args.method == "prompt_tuning":
         if args.init == "text":
             peft_config = PromptTuningConfig(
                 task_type=TaskType.CAUSAL_LM,
                 prompt_tuning_init=PromptTuningInit.TEXT,
                 num_virtual_tokens=20,
-                prompt_tuning_init_text="Classifique o sentimento desta revisão de filme como positivo ou negativo:",
+                prompt_tuning_init_text="Classify the sentiment of this movie review as positive or negative:",
                 tokenizer_name_or_path=model_id,
             )
             output_dir = "outputs/prompt_tuning_checkpoint"
@@ -88,21 +89,41 @@ def main():
             )
             output_dir = "outputs/prompt_tuning_random_checkpoint"
             method_name = "prompt_tuning_random"
-            learning_rate = 5e-3  # Taxa ideal e estável para atualizar apenas os soft-tokens
+            learning_rate = 5e-3  
             
-        model = get_peft_model(model, peft_config)
+    elif args.method == "lora":
+        peft_config = LoraConfig(
+            task_type=TaskType.CAUSAL_LM,
+            r=2,                       
+            lora_alpha=32,             
+            target_modules=["q_proj", "v_proj"], 
+            lora_dropout=0.05,
+            bias="none"
+        )
+        output_dir = "outputs/lora_checkpoint"
+        method_name = "lora"
+        learning_rate = 2e-5           
+        
     else:
-        # CORREÇÃO DIDÁTICA: Reduzido drasticamente para evitar colapso de pesos com Batch 64
         learning_rate = 1e-5  
         output_dir = "outputs/full_ft_checkpoint"
         method_name = "full_ft"
+
+    # 2. Aplica o PEFT de forma global (se não for Full FT) e imprime os parâmetros!
+    if args.method != "full_ft":
+        model = get_peft_model(model, peft_config)
+        print("\n" + "="*50)
+        print("🔍 VERIFICAÇÃO DE PARÂMETROS TREINÁVEIS (PEFT):")
+        model.print_trainable_parameters()
+        print("="*50 + "\n")
 
     train_dataset, val_dataset, _ = get_imdb_dataset(tokenizer, num_samples=args.samples)
 
     training_args = TrainingArguments(
         output_dir=f"results/{method_name}",
         learning_rate=learning_rate,
-        per_device_train_batch_size=64,  # Mantido em 64 para extrair a paralelização da A100
+        per_device_train_batch_size=8,
+        gradient_accumulation_steps=8,  
         num_train_epochs=args.epochs,
         weight_decay=0.01,
         logging_steps=10,  

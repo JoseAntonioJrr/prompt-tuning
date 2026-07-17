@@ -18,68 +18,70 @@ def main():
     with open(log_file, "r") as f:
         metrics_data = json.load(f)
 
-    c2_key = "5000_samples_5_epochs"
+    # Chave calibrada para o dataset completo
+    c2_key = "25000_samples_5_epochs"
     
-    # Tratamento de Fallback para manter compatibilidade com chaves antigas do JSON
-    if c2_key in metrics_data:
-        if "prompt_tuning" in metrics_data[c2_key] and "prompt_tuning_text" not in metrics_data[c2_key]:
-            metrics_data[c2_key]["prompt_tuning_text"] = metrics_data[c2_key]["prompt_tuning"]
-
-    metodos_alvo = ["prompt_tuning_text", "prompt_tuning_random", "full_ft"]
+    # Mapeamento estrito dos 4 métodos que queremos comparar no cenário realista de Edge
+    metodos_alvo = ["prompt_tuning_random", "prompt_tuning_text", "lora", "full_ft"]
     
-    # Garante que todas as simulações do cenário maior foram mapeadas corretamente
     for m in metodos_alvo:
         if c2_key not in metrics_data or m not in metrics_data[c2_key]:
-            print(f"❌ Faltam os dados de '{m}' no JSON para gerar o gráfico completo de 3 barras.")
+            print(f"❌ Faltam os dados de '{m}' no JSON para gerar o gráfico comparativo.")
+            print(f"Dica: Certifique-se de que rodou o evaluate.py após os treinos das 4 abordagens.")
             return
 
-    # Mapeamento estético para as labels do gráfico
-    labels = ["Prompt Tuning\n(Texto)", "Prompt Tuning\n(Random)", "Full Fine-Tuning"]
-    colors = ["#4c72b0", "#55a868", "#dd8452"]
+    # Labels estéticas e paleta de cores equilibrada para o quarteto
+    labels = [
+        "Prompt Tuning\n(Random - 100t)", 
+        "Prompt Tuning\n(Texto - 20t)", 
+        "LoRA\n(PEFT)", 
+        "Full Fine-Tuning"
+    ]
+    colors = ["#55a868", "#4c72b0", "#c44e52", "#dd8452"]
     x = np.arange(len(labels))
 
-    # Coleta dinâmica de valores de hardware reais salvos pelo callback
+    # Coleta de métricas reais de hardware salvos pelo callback do train.py
     vram_valores = [metrics_data[c2_key][m]["vram"] for m in metodos_alvo]
     tempo_valores = [metrics_data[c2_key][m]["time"] for m in metodos_alvo]
     
-    # CORREÇÃO DINÂMICA: Agora busca os valores exatos de acurácia que foram gravados no JSON pelo evaluate.py
-    # Se alguma chave não tiver a acurácia gravada ainda, usa os valores do seu terminal como fallback seguro.
+    # Coleta dinâmica das acurácias calculadas no evaluate.py
     acuracia_valores = [
-        metrics_data[c2_key]["prompt_tuning_text"].get("accuracy", 5.80),
-        metrics_data[c2_key]["prompt_tuning_random"].get("accuracy", 88.00),
-        metrics_data[c2_key]["full_ft"].get("accuracy", 37.30)
+        metrics_data[c2_key]["prompt_tuning_random"].get("accuracy", 0.0),
+        metrics_data[c2_key]["prompt_tuning_text"].get("accuracy", 0.0),
+        metrics_data[c2_key]["lora"].get("accuracy", 0.0),
+        metrics_data[c2_key]["full_ft"].get("accuracy", 0.0)
     ]
 
-    # --- FIGURA 1: COMPARATIVO DE ACURÁCIA ---
-    plt.figure(figsize=(7, 5))
-    bars = plt.bar(labels, acuracia_valores, color=colors, width=0.5)
-    plt.title('Acurácia por Método de Inicialização (5 Épocas / 5000 Samples)')
+    # --- FIGURA 1: COMPARATIVO DE ACURÁCIA (4 BARRAS) ---
+    plt.figure(figsize=(9, 5))
+    bars = plt.bar(labels, acuracia_valores, color=colors, width=0.45)
+    plt.title('Acurácia Comparativa por Método de Ajuste (5 Épocas / Full Dataset 25k)')
     plt.ylabel('Acurácia (%)')
-    plt.ylim(0, max(acuracia_valores) + 10)  # Dá uma folga no topo do gráfico para as etiquetas não cortarem
+    plt.ylim(0, max(acuracia_valores) + 12)
     for bar in bars:
         yval = bar.get_height()
         plt.text(bar.get_x() + bar.get_width()/2, yval + 1.5, f'{yval:.2f}%', ha='center', weight='bold')
     plt.tight_layout()
     
-    path_acc = "results/comparativo_acuracia_random_ajustesA100.png"
+    path_acc = "results/comparativo_acuracia_grok.png"
     plt.savefig(path_acc, dpi=300)
-    print(f"📊 Novo gráfico de Acurácia salvo em: {path_acc}")
+    print(f"📊 Gráfico quadri-barra de Acurácia salvo em: {path_acc}")
     plt.close()
 
-    # --- FIGURA 2: RECURSOS DE HARDWARE ---
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5))
+    # --- FIGURA 2: RECURSOS DE HARDWARE (4 BARRAS) ---
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(16, 5))
 
     # Subplot VRAM
-    bars_vram = ax1.bar(labels, vram_valores, color=colors, width=0.5)
+    bars_vram = ax1.bar(labels, vram_valores, color=colors, width=0.45)
     ax1.set_title('Pico Real de Alocação de VRAM Coletado')
     ax1.set_ylabel('Memória (GB)')
-    ax1.set_ylim(0, max(vram_valores) + 5)
+    ax1.set_ylim(0, max(vram_valores) + 3)
     for bar in bars_vram:
         yval = bar.get_height()
-        ax1.text(bar.get_x() + bar.get_width()/2, yval + 0.5, f'{yval:.2f}G', ha='center', weight='bold')
+        ax1.text(bar.get_x() + bar.get_width()/2, yval + 0.3, f'{yval:.2f}G', ha='center', weight='bold')
 
     # Subplot Tempo
-    bars_tempo = ax2.bar(labels, tempo_valores, color=colors, width=0.5)
+    bars_tempo = ax2.bar(labels, tempo_valores, color=colors, width=0.45)
     ax2.set_title('Tempo Real de Treinamento Coletado')
     ax2.set_ylabel('Segundos (s)')
     ax2.set_ylim(0, max(tempo_valores) * 1.15)
@@ -89,9 +91,9 @@ def main():
 
     plt.tight_layout()
     
-    path_hw = "results/comparativo_hardware_random_ajustesA100.png"
+    path_hw = "results/comparativo_hardware_grok.png"
     plt.savefig(path_hw, dpi=300)
-    print(f"📉 Novo gráfico de Hardware salvo em: {path_hw}")
+    print(f"📉 Gráfico quadri-barra de Hardware salvo em: {path_hw}")
     plt.close()
 
 if __name__ == "__main__":

@@ -40,12 +40,13 @@ def main():
     tokenizer = AutoTokenizer.from_pretrained(model_id)
     tokenizer.pad_token = tokenizer.eos_token
     
-    _, _, raw_val_data = get_imdb_dataset(tokenizer, num_samples=5000)
+    _, _, raw_val_data = get_imdb_dataset(tokenizer, num_samples=25000)
 
     results = {}
     checkpoints = {
         "Prompt Tuning (Texto)": "outputs/prompt_tuning_checkpoint",
         "Prompt Tuning (Random)": "outputs/prompt_tuning_random_checkpoint",
+        "LoRA": "outputs/lora_checkpoint",  # Inserido o LoRA na avaliação
         "Full Fine-Tuning": "outputs/full_ft_checkpoint"
     }
 
@@ -64,7 +65,7 @@ def main():
             log_file = "results/metrics_log.json"
             if os.path.exists(log_file):
                 with open(log_file, "r") as f: data = json.load(f)
-                key = "5000_samples_5_epochs"
+                key = "25000_samples_5_epochs"
                 method_key = name.lower().replace(" ", "_").replace("(", "").replace(")", "")
                 if key in data and method_key in data[key]:
                     data[key][method_key]["accuracy"] = acc
