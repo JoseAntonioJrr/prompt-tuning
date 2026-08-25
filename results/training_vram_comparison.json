@@ -1,0 +1,14 @@
+{
+    "LoRA Padr\u00e3o (BF16)": {
+        "peak_vram_gb": 5.260591983795166,
+        "time_seconds": 118.57833933830261
+    },
+    "QLoRA (Base 4-bit NF4)": {
+        "peak_vram_gb": 3.1274518966674805,
+        "time_seconds": 222.49203658103943
+    },
+    "QLoRA (Base 1-bit HQQ)": {
+        "peak_vram_gb": 4.010169506072998,
+        "time_seconds": 228.36605262756348
+    }
+}

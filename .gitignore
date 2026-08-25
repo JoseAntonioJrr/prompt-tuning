@@ -1,4 +1,4 @@
-# Ambiente virtual
+# Ambiente virtual e Caches
 .venv/
 __pycache__/
 *.pyc
@@ -9,3 +9,19 @@ results/prompt_tuning_checkpoint/
 results/prompt_tuning_random/
 results/full_ft/
 
+# Binários físicos e Modelos Quantizados
+*.gguf
+*.bin
+*.safetensors
+
+# Imagens e Gráficos gerados pelos scripts (mantém os .json)
+results/*.png
+
+# Diretórios de compilação (llama.cpp)
+llama.cpp/
+build/
+
+# Arquivos de sistema e IDE
+.DS_Store
+.vscode/
+.idea/
