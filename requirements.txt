@@ -3,6 +3,7 @@
 accelerate==1.14.0
     # via
     #   prompt-tuning (pyproject.toml)
+    #   hqq
     #   peft
     #   trl
 aiohappyeyeballs==2.7.1
@@ -17,6 +18,8 @@ anyio==4.14.1
     # via httpx
 attrs==26.1.0
     # via aiohttp
+bitsandbytes==0.50.1
+    # via prompt-tuning (pyproject.toml)
 certifi==2026.6.17
     # via
     #   httpcore
@@ -44,6 +47,8 @@ dill==0.4.1
     # via
     #   datasets
     #   multiprocess
+einops==0.8.2
+    # via hqq
 filelock==3.29.7
     # via
     #   datasets
@@ -64,6 +69,8 @@ h11==0.16.0
     # via httpcore
 hf-xet==1.5.1
     # via huggingface-hub
+hqq==0.2.8.post1
+    # via prompt-tuning (pyproject.toml)
 httpcore==1.0.9
     # via httpx
 httpx==0.28.1
@@ -74,6 +81,7 @@ huggingface-hub==1.23.0
     # via
     #   accelerate
     #   datasets
+    #   hqq
     #   peft
     #   tokenizers
     #   transformers
@@ -112,8 +120,10 @@ networkx==3.6.1
 numpy==2.5.1
     # via
     #   accelerate
+    #   bitsandbytes
     #   contourpy
     #   datasets
+    #   hqq
     #   matplotlib
     #   pandas
     #   peft
@@ -163,6 +173,7 @@ nvidia-nvtx==13.0.85
 packaging==26.2
     # via
     #   accelerate
+    #   bitsandbytes
     #   datasets
     #   huggingface-hub
     #   matplotlib
@@ -223,22 +234,27 @@ six==1.17.0
     # via python-dateutil
 sympy==1.14.0
     # via torch
+termcolor==3.3.0
+    # via hqq
 tokenizers==0.22.2
     # via transformers
 torch==2.13.0
     # via
     #   prompt-tuning (pyproject.toml)
     #   accelerate
+    #   bitsandbytes
     #   peft
 tqdm==4.68.4
     # via
     #   datasets
+    #   hqq
     #   huggingface-hub
     #   peft
     #   transformers
 transformers==5.13.0
     # via
     #   prompt-tuning (pyproject.toml)
+    #   hqq
     #   peft
     #   trl
 triton==3.7.1
